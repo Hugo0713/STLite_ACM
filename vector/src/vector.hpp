@@ -13,21 +13,16 @@
 
 namespace sjtu
 {
-	/**
-	 * a data container like std::vector
-	 * store data in a successive memory and support random access.
-	 */
 	template <typename T>
 	class vector
 	{
 	private:
-	T* data;
-	size_t size;
-	size_t capacity;
-	std::allocator<T> alloc;
+		T *data;
+		size_t size_;
+		size_t capacity;
+		std::allocator<T> alloc;
 
 	public:
-	
 		/**
 		 * TODO
 		 * a type for actions of the elements of a vector, and you should write
@@ -58,73 +53,121 @@ namespace sjtu
 			using iterator_category = std::output_iterator_tag;
 
 		private:
-			/**
-			 * TODO add data members
-			 *   just add whatever you want.
-			 */
+			size_t pos;	 // 迭代器位置
+			vector *vec; // 指向容器
 		public:
-			/**
-			 * return a new iterator which pointer n-next elements
-			 * as well as operator-
-			 */
+			iterator() : pos(0), vec(nullptr) {}
+			iterator(size_t position, vector *v) : pos(position), vec(v) {}
+			iterator(const iterator &other) : pos(other.pos), vec(other.vec) {}
+
 			iterator operator+(const int &n) const
 			{
-				// TODO
+				if (pos + n >= vec->size_)
+				{
+					throw index_out_of_bound();
+				}
+				return iterator(pos + n, vec);
 			}
 			iterator operator-(const int &n) const
 			{
-				// TODO
+				if (pos - n < 0)
+				{
+					throw index_out_of_bound();
+				}
+				return iterator(pos - n, vec);
 			}
-			// return the distance between two iterators,
-			// if these two iterators point to different vectors, throw invaild_iterator.
+
 			int operator-(const iterator &rhs) const
 			{
-				// TODO
+				if (vec != rhs.vec)
+				{
+					throw invalid_iterator();
+				}
+				return pos - rhs.pos;
 			}
 			iterator &operator+=(const int &n)
 			{
-				// TODO
+				// return (*this + n);
+				if (pos + n >= vec->size_)
+				{
+					throw index_out_of_bound();
+				}
+				pos += n;
+				return *this;
 			}
 			iterator &operator-=(const int &n)
 			{
-				// TODO
+				// return (*this - n);
+				if (pos - n < 0)
+				{
+					throw index_out_of_bound();
+				}
+				pos -= n;
+				return *this;
 			}
-			/**
-			 * TODO iter++
-			 */
-			iterator operator++(int) {}
-			/**
-			 * TODO ++iter
-			 */
-			iterator &operator++() {}
-			/**
-			 * TODO iter--
-			 */
-			iterator operator--(int) {}
-			/**
-			 * TODO --iter
-			 */
-			iterator &operator--() {}
-			/**
-			 * TODO *it
-			 */
-			T &operator*() const {}
-			/**
-			 * a operator to check whether two iterators are same (pointing to the same memory address).
-			 */
-			bool operator==(const iterator &rhs) const {}
-			bool operator==(const const_iterator &rhs) const {}
-			/**
-			 * some other operator for iterator.
-			 */
-			bool operator!=(const iterator &rhs) const {}
-			bool operator!=(const const_iterator &rhs) const {}
+			
+			iterator operator++(int) 
+			{
+				if (pos + 1 >= vec->size_)
+				{
+					throw index_out_of_bound();
+				}
+				return iterator(pos + 1, vec);
+			}
+			
+			iterator &operator++() 
+			{
+				if (pos + 1 >= vec->size_)
+				{
+					throw index_out_of_bound();
+				}
+				++pos;
+				return *this;
+			}
+			
+			iterator operator--(int) 
+			{
+				if (pos < 1)
+				{
+					throw index_out_of_bound();
+				}
+				return iterator(pos - 1, vec);
+			}
+			
+			iterator &operator--() 
+			{
+				if (pos < 1)
+				{
+					throw index_out_of_bound();
+				}
+				--pos;
+				return *this;
+			}
+			
+			T &operator*() const 
+			{
+				return vec->data[pos];
+			}
+			
+			bool operator==(const iterator &rhs) const 
+			{
+				return (pos == rhs.pos) && (vec == rhs.vec);
+			}
+			bool operator==(const const_iterator &rhs) const 
+			{
+				return (pos == rhs.pos) && (vec == rhs.vec);
+			}
+			
+			bool operator!=(const iterator &rhs) const 
+			{
+				return !(*this == rhs);
+			}
+			bool operator!=(const const_iterator &rhs) const 
+			{
+				return !(*this == rhs);
+			}
 		};
 
-		/**
-		 * TODO
-		 * has same function as iterator, just for a const object.
-		 */
 		class const_iterator
 		{
 		public:
@@ -135,64 +178,64 @@ namespace sjtu
 			using iterator_category = std::output_iterator_tag;
 
 		private:
-			/*TODO*/
+			size_t pos;
+			const vector *vec;
 		};
-		
-		
-		vector() : data(nullptr), size(0), capacity(0) {}
-		vector(const vector &other) : size(other.size), capacity(other.capacity)
+
+		vector() : data(nullptr), size_(0), capacity(0) {}
+		vector(const vector &other) : size_(other.size_), capacity(other.capacity)
 		{
-			data = alloc.allocate(capacity); //分配
-			for (size_t i = 0; i < size; ++i)
+			data = alloc.allocate(capacity); // 分配
+			for (size_t i = 0; i < size_; ++i)
 			{
-				//data[i] = other.data[i];
-				alloc.construct(data + i, other.data[i]); //构造
+				// data[i] = other.data[i];
+				alloc.construct(data + i, other.data[i]); // 构造
 			}
 		}
-		
-		~vector()  
+
+		~vector()
 		{
-			for (size_t i = 0; i < size; ++i)
+			for (size_t i = 0; i < size_; ++i)
 			{
-				alloc.destroy(data + i); //析构
+				alloc.destroy(data + i); // 析构
 			}
-			alloc.deallocate(data, capacity); //释放
-			size = 0;
+			alloc.deallocate(data, capacity); // 释放
+			size_ = 0;
 			capacity = 0;
 			data = nullptr;
 		}
-		
-		vector &operator=(const vector &other) 
+
+		vector &operator=(const vector &other)
 		{
-			if (this = &other)
+			if (this == &other)
 			{
 				return *this;
 			}
-			for (size_t i = 0; i < size; ++i)
+			for (size_t i = 0; i < size_; ++i)
 			{
-				alloc.destroy(data + i); //析构
+				alloc.destroy(data + i); // 析构
 			}
-			alloc.deallocate(data, capacity); //释放
-			size = other.size;
+			alloc.deallocate(data, capacity); // 释放
+			size_ = other.size_;
 			capacity = other.capacity;
-			data = alloc.allocate(capacity); //分配
-			for (size_t i = 0; i < size; ++i)
+			data = alloc.allocate(capacity); // 分配
+			for (size_t i = 0; i < size_; ++i)
 			{
-				//data[i] = other.data[i];
-				alloc.construct(data + i, other.data[i]); //构造
+				// data[i] = other.data[i];
+				alloc.construct(data + i, other.data[i]); // 构造
 			}
 			return *this;
 		}
-		
+
 		void Double()
 		{
 			capacity *= 2;
 			T *tmp = alloc.allocate(2 * capacity);
-			for (size_t i = 0; i < size; ++i)
+			for (size_t i = 0; i < size_; ++i)
 			{
 				alloc.construct(tmp + i, data[i]);
 			}
-			for (size_t i = 0; i < size; ++i)
+			for (size_t i = 0; i < size_; ++i)
 			{
 				alloc.destroy(data + i);
 			}
@@ -201,56 +244,56 @@ namespace sjtu
 			tmp = nullptr;
 		}
 
-		T &at(const size_t &pos) 
+		T &at(const size_t &pos)
 		{
-			if (pos >= size || pos < 0)
+			if (pos >= size_ || pos < 0)
 			{
 				throw index_out_of_bound();
 			}
 			return data[pos];
 		}
-		const T &at(const size_t &pos) const 
+		const T &at(const size_t &pos) const
 		{
-			//return const_cast<vector<T>*>(this)->at(pos); //不确定风险
-			if (pos >= size || pos < 0)
+			// return const_cast<vector<T>*>(this)->at(pos); //不确定风险
+			if (pos >= size_ || pos < 0)
 			{
 				throw index_out_of_bound();
 			}
 			return data[pos];
 		}
-		
-		T &operator[](const size_t &pos) 
+
+		T &operator[](const size_t &pos)
 		{
-			if (pos >= size || pos < 0)
+			if (pos >= size_ || pos < 0)
 			{
 				throw index_out_of_bound();
 			}
 			return data[pos];
 		}
-		const T &operator[](const size_t &pos) const 
+		const T &operator[](const size_t &pos) const
 		{
-			if (pos >= size || pos < 0)
+			if (pos >= size_ || pos < 0)
 			{
 				throw index_out_of_bound();
 			}
 			return data[pos];
-		} 
-		
-		const T &front() const 
+		}
+
+		const T &front() const
 		{
-			if (size == 0)
+			if (size_ == 0)
 			{
 				throw container_is_empty();
 			}
 			return data[0];
 		}
-		const T &back() const 
+		const T &back() const
 		{
-			if (size == 0)
+			if (size_ == 0)
 			{
 				throw container_is_empty();
 			}
-			return data[size - 1];
+			return data[size_ - 1];
 		}
 		/**
 		 * returns an iterator to the beginning.
@@ -262,25 +305,25 @@ namespace sjtu
 		 */
 		iterator end() {}
 		const_iterator cend() const {}
-		
-		bool empty() const 
+
+		bool empty() const
 		{
-			return (size == 0);
+			return (size_ == 0);
 		}
-		
-		size_t size() const 
+
+		size_t size_() const
 		{
-			return size;
+			return size_;
 		}
-		
-		void clear() 
+
+		void clear()
 		{
-			for (size_t i = 0; i < size; ++i)
+			for (size_t i = 0; i < size_; ++i)
 			{
 				alloc.destroy(data + i);
 			}
 			alloc.deallocate(data, capacity);
-			size = 0;
+			size_ = 0;
 			capacity = 0;
 			data = nullptr;
 		}
@@ -308,25 +351,25 @@ namespace sjtu
 		 * throw index_out_of_bound if ind >= size
 		 */
 		iterator erase(const size_t &ind) {}
-		
-		void push_back(const T &value) 
+
+		void push_back(const T &value)
 		{
-			if (size >= capacity)
+			if (size_ >= capacity)
 			{
 				Double();
 			}
-			alloc.construct(data + size, value);
-			++size;
+			alloc.construct(data + size_, value);
+			++size_;
 		}
-		
-		void pop_back() 
+
+		void pop_back()
 		{
-			if (size == 0)
+			if (size_ == 0)
 			{
 				throw container_is_empty();
 			}
-			alloc.destroy(data + size - 1);
-			--size;
+			alloc.destroy(data + size_ - 1);
+			--size_;
 		}
 	};
 
