@@ -350,7 +350,27 @@ namespace sjtu
 			data = tmp;
 			tmp = nullptr;
 		}
-		
+
+		void halve()
+		{
+			capacity /= 2;
+			T *tmp = alloc.allocate(capacity);
+			for (size_t i = 0; i < size_; ++i)
+			{
+				new(tmp + i) T(data[i]);
+			}
+			for (size_t i = 0; i < size_; ++i)
+			{
+				(data + i)->~T();
+			}
+			if (data != nullptr)
+			{
+				alloc.deallocate(data, capacity);
+			}
+			data = tmp;
+			tmp = nullptr;
+		}
+
 		T &at(const size_t &pos)
 		{
 			if (pos >= size_ || pos < 0)
@@ -480,6 +500,10 @@ namespace sjtu
 			{
 				throw index_out_of_bound();
 			}
+			if (size_ <= capacity / 3)
+			{
+				halve();
+			}
 			--size_;
 			for (size_t i = ind;i < size_; ++i)
 			{
@@ -504,6 +528,10 @@ namespace sjtu
 			if (size_ == 0)
 			{
 				throw container_is_empty();
+			}
+			if (size_ <= capacity / 3)
+			{
+				halve();
 			}
 			(data + size_ - 1)->~T();
 			--size_;
