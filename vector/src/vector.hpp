@@ -10,6 +10,7 @@
 #include <iostream>
 #include <cmath>
 #include <string>
+#include <memory>
 
 // 参考资料：stl源码解析
 namespace sjtu
@@ -24,14 +25,6 @@ namespace sjtu
 		std::allocator<T> alloc; // 空间配置器
 
 	public:
-		/**
-		 * TODO
-		 * a type for actions of the elements of a vector, and you should write
-		 *   a class named const_iterator with same interfaces.
-		 */
-		/**
-		 * you can see RandomAccessIterator at CppReference for help.
-		 */
 		class const_iterator;
 		class iterator
 		{
@@ -63,7 +56,7 @@ namespace sjtu
 
 			iterator operator+(const int &n) const
 			{
-				if (pos + n >= vec->size_)
+				if (pos + n > vec->size_)
 				{
 					throw index_out_of_bound();
 				}
@@ -88,8 +81,7 @@ namespace sjtu
 			}
 			iterator &operator+=(const int &n)
 			{
-				// return (*this + n);
-				if (pos + n >= vec->size_)
+				if (pos + n > vec->size_)
 				{
 					throw index_out_of_bound();
 				}
@@ -98,7 +90,6 @@ namespace sjtu
 			}
 			iterator &operator-=(const int &n)
 			{
-				// return (*this - n);
 				if (pos - n < 0)
 				{
 					throw index_out_of_bound();
@@ -109,7 +100,7 @@ namespace sjtu
 
 			iterator operator++(int)
 			{
-				if (pos + 1 >= vec->size_)
+				if (pos + 1 > vec->size_)
 				{
 					throw index_out_of_bound();
 				}
@@ -118,7 +109,7 @@ namespace sjtu
 
 			iterator &operator++()
 			{
-				if (pos + 1 >= vec->size_)
+				if (pos + 1 > vec->size_)
 				{
 					throw index_out_of_bound();
 				}
@@ -214,7 +205,6 @@ namespace sjtu
 			}
 			const_iterator &operator+=(const int &n)
 			{
-				// return (*this + n);
 				if (pos + n >= vec->size_)
 				{
 					throw index_out_of_bound();
@@ -224,7 +214,6 @@ namespace sjtu
 			}
 			const_iterator &operator-=(const int &n)
 			{
-				// return (*this - n);
 				if (pos - n < 0)
 				{
 					throw index_out_of_bound();
@@ -235,7 +224,7 @@ namespace sjtu
 
 			const_iterator operator++(int)
 			{
-				if (pos + 1 >= vec->size_)
+				if (pos + 1 > vec->size_)
 				{
 					throw index_out_of_bound();
 				}
@@ -244,7 +233,7 @@ namespace sjtu
 
 			const_iterator &operator++()
 			{
-				if (pos + 1 >= vec->size_)
+				if (pos + 1 > vec->size_)
 				{
 					throw index_out_of_bound();
 				}
@@ -301,8 +290,7 @@ namespace sjtu
 			data = alloc.allocate(capacity); // 分配
 			for (size_t i = 0; i < size_; ++i)
 			{
-				// data[i] = other.data[i];
-				alloc.construct(data + i, other.data[i]); // 构造
+				data[i] = other.data[i];
 			}
 		}
 
@@ -310,7 +298,7 @@ namespace sjtu
 		{
 			for (size_t i = 0; i < size_; ++i)
 			{
-				alloc.destroy(data + i); // 析构
+				(data + i)->~T();
 			}
 			alloc.deallocate(data, capacity); // 释放
 			size_ = 0;
@@ -326,7 +314,7 @@ namespace sjtu
 			}
 			for (size_t i = 0; i < size_; ++i)
 			{
-				alloc.destroy(data + i); // 析构
+				(data + i)->~T();
 			}
 			alloc.deallocate(data, capacity); // 释放
 			size_ = other.size_;
@@ -334,29 +322,35 @@ namespace sjtu
 			data = alloc.allocate(capacity); // 分配
 			for (size_t i = 0; i < size_; ++i)
 			{
-				// data[i] = other.data[i];
-				alloc.construct(data + i, other.data[i]); // 构造
+				data[i] = other.data[i];
 			}
 			return *this;
 		}
 
 		void Double()
 		{
+			if (capacity == 0)
+			{
+				capacity = 1;
+			}
 			capacity *= 2;
-			T *tmp = alloc.allocate(2 * capacity);
+			T *tmp = alloc.allocate(capacity);
 			for (size_t i = 0; i < size_; ++i)
 			{
-				alloc.construct(tmp + i, data[i]);
+				new(tmp + i) T(data[i]); //直接赋值出错 可用c++20 std::construct_at(tmp + i, data[i]);
 			}
 			for (size_t i = 0; i < size_; ++i)
 			{
-				alloc.destroy(data + i);
+				(data + i)->~T();
 			}
-			alloc.deallocate(data, capacity);
+			if (data != nullptr)
+			{
+				alloc.deallocate(data, capacity);
+			}
 			data = tmp;
 			tmp = nullptr;
 		}
-
+		
 		T &at(const size_t &pos)
 		{
 			if (pos >= size_ || pos < 0)
@@ -415,16 +409,16 @@ namespace sjtu
 		}
 		const_iterator cbegin() const
 		{
-			return const_iterator(0, this);
+			return const_iterator(0, const_cast<vector*>(this));
 		}
 
 		iterator end()
 		{
-			return iterator(size_ - 1, this);
+			return iterator(size_, this);
 		}
 		const_iterator cend() const
 		{
-			return const_iterator(size_ - 1, this);
+			return const_iterator(size_, const_cast<vector*>(this));
 		}
 
 		bool empty() const
@@ -441,28 +435,20 @@ namespace sjtu
 		{
 			for (size_t i = 0; i < size_; ++i)
 			{
-				alloc.destroy(data + i);
+				(data + i)->~T();
 			}
 			alloc.deallocate(data, capacity);
 			size_ = 0;
 			capacity = 0;
 			data = nullptr;
 		}
-		/**
-		 * inserts value before pos
-		 * returns an iterator pointing to the inserted value.
-		 */
+		
 		iterator insert(iterator pos, const T &value)
 		{
 			size_t ind = pos - begin();
 			return insert(ind, value);
 		}
-		/**
-		 * inserts value at index ind.
-		 * after inserting, this->at(ind) == value
-		 * returns an iterator pointing to the inserted value.
-		 * throw index_out_of_bound if ind > size (in this situation ind can be size because after inserting the size will increase 1.)
-		 */
+		
 		iterator insert(const size_t &ind, const T &value)
 		{
 			if (ind < 0 || ind > size_)
@@ -473,41 +459,33 @@ namespace sjtu
 			{
 				Double();
 			}
-			const size_t elem_after = size_ - ind;
-			iterator pos_old(ind, this);
-			iterator pos_new(ind + 1, this);
-			uninitialized_copy_n(pos_old, size_ - ind + 1, pos_new);
-			alloc.construct(data + ind, value);
 			++size_;
+			for (size_t i = size_; i - ind > 0; --i)
+			{
+				data[i] = data[i - 1];
+			}
+			data[ind] = value;
 			return begin() + ind;
-
 		}
-		/**
-		 * removes the element at pos.
-		 * return an iterator pointing to the following element.
-		 * If the iterator pos refers the last element, the end() iterator is returned.
-		 */
+		
 		iterator erase(iterator pos) 
 		{
 			size_t ind = pos - begin();
 			return erase(ind);
 		}
-		/**
-		 * removes the element with index ind.
-		 * return an iterator pointing to the following element.
-		 * throw index_out_of_bound if ind >= size
-		 */
+		
 		iterator erase(const size_t &ind) 
 		{
 			if (ind < 0 || ind >= size_)
 			{
 				throw index_out_of_bound();
 			}
-			iterator pos_old(ind + 1, this);
-			iterator pos_new(ind, this);
-			uninitialized_copy_n(pos_old, size_ - ind, pos_new);
-			alloc.destroy(data + ind);
 			--size_;
+			for (size_t i = ind;i < size_; ++i)
+			{
+				data[i] = data[i + 1];
+			}
+			(data + ind)->~T();
 			return begin() + ind;
 		}
 
@@ -517,7 +495,7 @@ namespace sjtu
 			{
 				Double();
 			}
-			alloc.construct(data + size_, value);
+			new (data + size_) T(value);
 			++size_;
 		}
 
@@ -527,7 +505,7 @@ namespace sjtu
 			{
 				throw container_is_empty();
 			}
-			alloc.destroy(data + size_ - 1);
+			(data + size_ - 1)->~T();
 			--size_;
 		}
 	};
