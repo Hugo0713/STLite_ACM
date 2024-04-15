@@ -337,7 +337,7 @@ namespace sjtu
 			T *tmp = alloc.allocate(capacity);
 			for (size_t i = 0; i < size_; ++i)
 			{
-				new(tmp + i) T(data[i]); //直接赋值出错 可用c++20 std::construct_at(tmp + i, data[i]);
+				new (tmp + i) T(data[i]); // 直接赋值出错 可用c++20 std::construct_at(tmp + i, data[i]);
 			}
 			for (size_t i = 0; i < size_; ++i)
 			{
@@ -357,7 +357,7 @@ namespace sjtu
 			T *tmp = alloc.allocate(capacity);
 			for (size_t i = 0; i < size_; ++i)
 			{
-				new(tmp + i) T(data[i]);
+				new (tmp + i) T(data[i]);
 			}
 			for (size_t i = 0; i < size_; ++i)
 			{
@@ -429,7 +429,7 @@ namespace sjtu
 		}
 		const_iterator cbegin() const
 		{
-			return const_iterator(0, const_cast<vector*>(this));
+			return const_iterator(0, const_cast<vector *>(this));
 		}
 
 		iterator end()
@@ -438,7 +438,7 @@ namespace sjtu
 		}
 		const_iterator cend() const
 		{
-			return const_iterator(size_, const_cast<vector*>(this));
+			return const_iterator(size_, const_cast<vector *>(this));
 		}
 
 		bool empty() const
@@ -462,13 +462,13 @@ namespace sjtu
 			capacity = 0;
 			data = nullptr;
 		}
-		
+
 		iterator insert(iterator pos, const T &value)
 		{
 			size_t ind = pos - begin();
 			return insert(ind, value);
 		}
-		
+
 		iterator insert(const size_t &ind, const T &value)
 		{
 			if (ind < 0 || ind > size_)
@@ -487,14 +487,14 @@ namespace sjtu
 			data[ind] = value;
 			return begin() + ind;
 		}
-		
-		iterator erase(iterator pos) 
+
+		iterator erase(iterator pos)
 		{
 			size_t ind = pos - begin();
 			return erase(ind);
 		}
-		
-		iterator erase(const size_t &ind) 
+
+		iterator erase(const size_t &ind)
 		{
 			if (ind < 0 || ind >= size_)
 			{
@@ -505,7 +505,7 @@ namespace sjtu
 				halve();
 			}
 			--size_;
-			for (size_t i = ind;i < size_; ++i)
+			for (size_t i = ind; i < size_; ++i)
 			{
 				data[i] = data[i + 1];
 			}
